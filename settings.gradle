@@ -1,2 +1,2 @@
-include ':app', ':modeminfo'
+include ':app', ':modeminfo', ':gpsinfo'
 rootProject.name='Location'
