@@ -17,6 +17,7 @@ import android.telephony.CellInfoWcdma;
 import android.telephony.CellLocation;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
+import android.telephony.gsm.GsmCellLocation;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -38,7 +39,12 @@ public class ModemInfoActivity extends AppCompatActivity {
         setContentView(R.layout.activity_modem_info);
         checkRequiredPermissions();
         try {
-            getModemInfo();
+            TelephonyManager telManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
+            List<CellInfo> cellInfos = telManager.getAllCellInfo();
+            getModemInfo(cellInfos);
+
+            telManager.listen(modemListener, PhoneStateListener.LISTEN_CELL_INFO);
+            telManager.listen(modemListener, PhoneStateListener.LISTEN_CELL_LOCATION);
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
         }
@@ -66,9 +72,7 @@ public class ModemInfoActivity extends AppCompatActivity {
         }
     }
 
-    private void getModemInfo() {
-        TelephonyManager telManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
-        List<CellInfo> cellInfos = telManager.getAllCellInfo();
+    private void getModemInfo(List<CellInfo> cellInfos) {
         for (CellInfo cellInfo : cellInfos) {
             if (cellInfo instanceof CellInfoGsm) {
                 mCid = ((CellInfoGsm)cellInfo).getCellIdentity().getCid();
@@ -132,5 +136,22 @@ public class ModemInfoActivity extends AppCompatActivity {
             Log.i(TAG, "Modem Info: cid="+mCid+", lac="+mLac+", mcc="+mMcc+", mnc="+mMnc);
         }
     }
+
+    public PhoneStateListener modemListener = new PhoneStateListener() {
+        @Override
+        public void onCellInfoChanged(List<CellInfo> cellInfos) {
+            Log.i(TAG, "Cell info change");
+            getModemInfo(cellInfos);
+        }
+
+        @Override
+        public void onCellLocationChanged(CellLocation location) {
+            Log.i(TAG, "Cell location change");
+            GsmCellLocation gsmCellLocation = (GsmCellLocation)location;
+            mCid = gsmCellLocation.getCid();
+            mLac = gsmCellLocation.getLac();
+            Log.i(TAG, "Modem Info changed: "+ "cid="+mCid+", lac="+mLac);
+        }
+    };
 
 }
